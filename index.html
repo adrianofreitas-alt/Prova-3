@@ -3,44 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Avaliação Multiformato</title>
+    <title>Sistema de Avaliação Autônomo com IA</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin: 0 auto;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 0 auto; }
         h2, h3 { text-align: center; color: #444; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="number"], select, input[type="file"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
+        input[type="text"], input[type="password"], input[type="number"], select, input[type="file"] {
+            width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
         }
         button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
+            width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px;
         }
         button:hover { background-color: #0056b3; }
         .secondary-btn { background-color: #28a745; }
@@ -49,14 +25,14 @@
         .questao { background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-left: 4px solid #007bff; border-radius: 4px; }
         .opcoes label { font-weight: normal; display: block; margin-bottom: 5px; cursor: pointer; }
         textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
-        #status-leitura { color: #007bff; font-weight: bold; font-size: 13px; margin-top: 5px; text-align: center; }
+        #status-leitura { color: #dc3545; font-weight: bold; font-size: 14px; margin-top: 5px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="tela-inicial">
-        <h2>Sistema de Provas</h2>
+        <h2>Sistema de Provas Inteligente</h2>
         <button onclick="acessarPainelProfessor()">Painel do Professor</button>
         <button class="secondary-btn" onclick="acessarPainelAluno()">Realizar Prova (Aluno)</button>
     </div>
@@ -72,7 +48,14 @@
     </div>
 
     <div id="painel-professor" class="hidden">
-        <h2>Configuração da Avaliação</h2>
+        <h2>Configuração da IA e Avaliação</h2>
+        
+        <div class="form-group">
+            <label style="color: #2563eb;">Chave de API da OpenAI (Deixe salvo para usar a IA):</label>
+            <input type="password" id="api-key" placeholder="sk-...">
+            <small><a href="https://platform.openai.com/api-keys" target="_blank">Clique aqui para obter sua chave OpenAI</a></small>
+        </div>
+        <hr>
         <div class="form-group">
             <label>Nome do Professor:</label>
             <input type="text" id="prof-nome">
@@ -86,22 +69,22 @@
             <input type="text" id="prof-assunto">
         </div>
         <div class="form-group">
-            <label>Quantidade de Perguntas:</label>
+            <label>Quantidade de Perguntas que a IA deve criar:</label>
             <input type="number" id="prof-qtd-perguntas" min="1" value="5">
         </div>
         <div class="form-group">
             <label>Tipo de Prova:</label>
             <select id="prof-tipo-prova">
-                <option value="objetiva">Objetiva (A, B, C, D, E)</option>
+                <option value="objetiva">Objetiva (Com Gabarito Automático)</option>
                 <option value="descritiva">Descritiva (Dissertativa)</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Selecionar Arquivo (PDF, DOCX, PPTX ou TXT):</label>
+            <label>Anexar Material de Origem (PDF, DOCX, PPTX ou TXT):</label>
             <input type="file" id="prof-arquivo" accept=".txt,.pdf,.docx,.pptx">
             <div id="status-leitura"></div>
         </div>
-        <button onclick="salvarConfiguracao()">Salvar e Criar Prova</button>
+        <button onclick="gerarProvaComIA()">Criar Prova Utilizando a IA</button>
         <button style="background-color: #6c757d;" onclick="voltarInicio()">Voltar</button>
     </div>
 
@@ -126,12 +109,15 @@
 </div>
 
 <script>
-    // Define o worker do PDF.js de forma estável
-    if (typeof window !== 'undefined' && window['pdfjs-dist/build/pdf']) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    }
-
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     var dadosProva = null;
+
+    // Carrega a chave da API salva anteriormente para conveniência do professor
+    window.onload = function() {
+        if(localStorage.getItem('saved_api_key')) {
+            document.getElementById('api-key').value = localStorage.getItem('saved_api_key');
+        }
+    };
 
     function voltarInicio() {
         document.getElementById('tela-inicial').classList.remove('hidden');
@@ -143,51 +129,14 @@
     }
 
     function acessarPainelProfessor() {
-        var senha = prompt("Digite a senha do professor:");
-        if (senha === "ahf") {
+        if (prompt("Digite a senha do professor:") === "ahf") {
             document.getElementById('tela-inicial').classList.add('hidden');
             document.getElementById('painel-professor').classList.remove('hidden');
-        } else {
-            alert("Senha incorreta!");
-        }
+        } else { alert("Senha incorreta!"); }
     }
 
-    // Processa o texto limpando caracteres ocultos e dividindo as questões pelas barras "|"
-    function processarTextoQuestoes(textoCompleto, tipo, qtd, nome, school, assunto) {
-        // Remove quebras de linha estranhas que arquivos binários costumam injetar
-        var linhas = textoCompleto.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
-        var questoesExtraidas = [];
-
-        linhas.forEach(function(linha) {
-            var partes = linha.split('|').map(function(p) { return p.trim(); });
-            
-            if(tipo === "objetiva" && partes.length >= 7) {
-                questoesExtraidas.push({
-                    enunciado: partes[0],
-                    a: partes[1], b: partes[2], c: partes[3], d: partes[4], e: partes[5],
-                    gabarito: partes[6].replace('Gabarito:', '').trim().toUpperCase()
-                });
-            } else if(tipo === "descritiva" && partes.length >= 1) {
-                questoesExtraidas.push({ enunciado: partes[0] });
-            }
-        });
-
-        var listaFinalQuestoes = questoesExtraidas.slice(0, qtd);
-
-        if(listaFinalQuestoes.length === 0) {
-            alert("Erro ao processar as questões.\n\nCertifique-se de que o arquivo carregado foi gerado pelo Copilot usando o padrão de barras verticais:\nPergunta | Alternativa A | Alternativa B | Alternativa C | Alternativa D | Alternativa E | Gabarito: C");
-            document.getElementById('status-leitura').innerText = "";
-            return;
-        }
-
-        dadosProva = { nome: nome, escola: school, assunto: assunto, qtd: qtd, tipo: tipo, questoes: listaFinalQuestoes };
-        localStorage.setItem('dadosProvaSalva', JSON.stringify(dadosProva));
-
-        alert("Prova publicada com sucesso com as letras corrigidas!");
-        voltarInicio();
-    }
-
-    function salvarConfiguracao() {
+    function gerarProvaComIA() {
+        var apiKey = document.getElementById('api-key').value.trim();
         var nome = document.getElementById('prof-nome').value;
         var school = document.getElementById('prof-escola').value;
         var assunto = document.getElementById('prof-assunto').value;
@@ -195,79 +144,124 @@
         var tipo = document.getElementById('prof-tipo-prova').value;
         var arquivoInput = document.getElementById('prof-arquivo');
 
-        if(!nome || !school || !assunto || !qtd || arquivoInput.files.length === 0) {
-            alert("Por favor, preencha todos os campos e selecione o arquivo!");
+        if(!apiKey || !nome || !school || !assunto || !qtd || arquivoInput.files.length === 0) {
+            alert("Por favor, preencha todos os campos, informe sua Chave de API e anexe o arquivo.");
             return;
         }
 
+        localStorage.setItem('saved_api_key', apiKey); // Salva para o professor não precisar digitar sempre
         var arquivo = arquivoInput.files[0];
         var extensao = arquivo.name.split('.').pop().toLowerCase();
         var statusDiv = document.getElementById('status-leitura');
         
-        statusDiv.innerText = "Processando e limpando texto do documento... Por favor, aguarde.";
+        statusDiv.innerText = "Extraindo conteúdo do arquivo...";
 
-        // TEXTO PURO (.txt) com codificação UTF-8 explícita para evitar falhas de acentuação
         if (extensao === "txt") {
-            var leitorTxt = new FileReader();
-            leitorTxt.onload = function(e) {
-                processarTextoQuestoes(e.target.result, tipo, qtd, nome, school, assunto);
+            var leitor = new FileReader();
+            leitor.onload = function(e) { enviarParaIA(e.target.result, apiKey, tipo, qtd, nome, school, assunto); };
+            leitor.readAsText(arquivo, "UTF-8");
+        } else if (extensao === "docx" || extensao === "pptx") {
+            var leitorDoc = new FileReader();
+            leitorDoc.onload = function(e) {
+                mammoth.extractRawText({ arrayBuffer: e.target.result }).then(function(res) {
+                    enviarParaIA(res.value, apiKey, tipo, qtd, nome, school, assunto);
+                });
             };
-            leitorTxt.readAsText(arquivo, "UTF-8");
-        } 
-        
-        // DOCUMENTOS WORD (.docx) ou POWERPOINT (.pptx)
-        else if (extensao === "docx" || extensao === "pptx") {
-            var leitorDocx = new FileReader();
-            leitorDocx.onload = function(e) {
-                var arrayBuffer = e.target.result;
-                mammoth.extractRawText({ arrayBuffer: arrayBuffer })
-                    .then(function(result) {
-                        processarTextoQuestoes(result.value, tipo, qtd, nome, school, assunto);
-                    })
-                    .catch(function(err) {
-                        alert("Erro ao ler o documento: " + err);
-                        statusDiv.innerText = "";
-                    });
-            };
-            leitorDocx.readAsArrayBuffer(arquivo);
-        } 
-        
-        // DOCUMENTOS PDF (.pdf) - Extração limpa caractere por caractere
-        else if (extensao === "pdf") {
+            leitorDoc.readAsArrayBuffer(arquivo);
+        } else if (extensao === "pdf") {
             var leitorPdf = new FileReader();
             leitorPdf.onload = function(e) {
                 var typedarray = new Uint8Array(e.target.result);
                 pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-                    var maxPages = pdf.numPages;
-                    var countPromises = [];
-                    
-                    for (var j = 1; j <= maxPages; j++) {
-                        countPromises.push(pdf.getPage(j).then(function(page) {
+                    var carregarPaginas = [];
+                    for (var j = 1; j <= pdf.numPages; j++) {
+                        carregarPaginas.push(pdf.getPage(j).then(function(page) {
                             return page.getTextContent().then(function(text) {
                                 return text.items.map(function(s) { return s.str; }).join(' ');
                             });
                         }));
                     }
-                    
-                    Promise.all(countPromises).then(function(texts) {
-                        var textoPdfCompleto = texts.join('\n');
-                        processarTextoQuestoes(textoPdfCompleto, tipo, qtd, nome, school, assunto);
+                    Promise.all(carregarPaginas).then(function(texts) {
+                        enviarParaIA(texts.join('\n'), apiKey, tipo, qtd, nome, school, assunto);
                     });
-                }).catch(function(err) {
-                    alert("Erro ao processar PDF: " + err.message);
-                    statusDiv.innerText = "";
                 });
             };
             leitorPdf.readAsArrayBuffer(arquivo);
-        } else {
-            alert("Formato não suportado. Por favor use .txt, .pdf, .docx ou .pptx");
-            statusDiv.innerText = "";
         }
     }
 
+    // Comunicação DIRETA E INTERNA com o modelo GPT da OpenAI
+    function enviarParaIA(textoMaterial, apiKey, tipo, qtd, nome, school, assunto) {
+        var statusDiv = document.getElementById('status-leitura');
+        statusDiv.innerText = "A Inteligência Artificial está gerando sua prova... Aguarde.";
+
+        var promptComando = "";
+        if (tipo === "objetiva") {
+            promptComando = "Com base no seguinte texto, crie exatamente " + qtd + " questões objetivas de múltipla escolha sobre o assunto '" + assunto + "'. O retorno deve ser exclusivamente linhas separadas por '|' contendo: Enunciado | texto da alternativa A | texto da alternativa B | texto da alternativa C | texto da alternativa D | texto da alternativa E | Gabarito: LETRA_CORRETA. Não envie textos adicionais, numerações ou títulos, apenas as linhas com o padrão.";
+        } else {
+            promptComando = "Com base no seguinte texto, crie exatamente " + qtd + " questões dissertativas/descritivas sobre o assunto '" + assunto + "'. O retorno deve ser exclusivamente uma pergunta por linha, sem títulos ou numerações.";
+        }
+
+        // Requisição para a API
+        fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + apiKey
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini", // Modelo ultra-rápido e preciso
+                messages: [
+                    { role: "system", content: "Você é um assistente gerador de provas acadêmicas que responde apenas no formato rígido solicitado." },
+                    { role: "user", content: promptComando + "\n\nTexto de Base:\n" + textoMaterial }
+                ],
+                temperature: 0.5
+            })
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(dados) {
+            if(dados.error) {
+                alert("Erro na IA: " + dados.error.message);
+                statusDiv.innerText = "";
+                return;
+            }
+
+            var textoGerado = dados.choices[0].message.content.trim();
+            var linhas = textoGerado.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+            var questoesFinalizadas = [];
+
+            linhas.forEach(function(linha) {
+                var partes = linha.split('|').map(function(p) { return p.trim(); });
+                if(tipo === "objetiva" && partes.length >= 7) {
+                    questoesFinalizadas.push({
+                        enunciado: partes[0], a: partes[1], b: partes[2], c: partes[3], d: partes[4], e: partes[5],
+                        gabarito: partes[6].replace('Gabarito:', '').trim().toUpperCase()
+                    });
+                } else if(tipo === "descritiva") {
+                    questoesFinalizadas.push({ enunciado: linha });
+                }
+            });
+
+            if(questoesFinalizadas.length === 0) {
+                alert("A IA gerou um formato incorreto. Tente clicar em Gerar novamente.");
+                statusDiv.innerText = "";
+                return;
+            }
+
+            dadosProva = { nome: nome, escola: school, assunto: assunto, qtd: qtd, tipo: tipo, questoes: questoesFinalizadas };
+            localStorage.setItem('dadosProvaSalva', JSON.stringify(dadosProva));
+
+            alert("Sucesso! A Inteligência Artificial leu o documento e criou a prova automaticamente!");
+            voltarInicio();
+        })
+        .catch(function(err) {
+            alert("Falha de Conexão com a IA: " + err);
+            statusDiv.innerText = "";
+        });
+    }
+
     function acessarPainelAluno() {
-        var checar = localStorage.getItem('dadosProvaSalva');
-        if (!checar) {
+        if (!localStorage.getItem('dadosProvaSalva')) {
             alert("Nenhuma prova foi configurada pelo professor ainda!");
             return;
         }
@@ -277,13 +271,9 @@
 
     function iniciarProvaReal() {
         var nomeAluno = document.getElementById('aluno-nome').value.trim();
-        if(!nomeAluno) {
-            alert("Por favor, digite seu nome para iniciar!");
-            return;
-        }
+        if(!nomeAluno) { alert("Por favor, digite seu nome!"); return; }
 
         dadosProva = JSON.parse(localStorage.getItem('dadosProvaSalva'));
-
         document.getElementById('tela-nome-aluno').classList.add('hidden');
         document.getElementById('tela-prova').classList.remove('hidden');
 
@@ -296,12 +286,10 @@
         container.innerHTML = ""; 
 
         dadosProva.questoes.forEach(function(questao, index) {
-            var numero = index + 1;
             var div = document.createElement('div');
             div.className = "questao";
-            
             if (dadosProva.tipo === "objetiva") {
-                div.innerHTML = "<p><strong>Questão " + numero + ":</strong> " + questao.enunciado + "</p>" +
+                div.innerHTML = "<p><strong>Questão " + (index + 1) + ":</strong> " + questao.enunciado + "</p>" +
                     "<div class='opcoes'>" +
                         "<label><input type='radio' name='q" + index + "' value='A'> a) " + questao.a + "</label>" +
                         "<label><input type='radio' name='q" + index + "' value='B'> b) " + questao.b + "</label>" +
@@ -310,8 +298,8 @@
                         "<label><input type='radio' name='q" + index + "' value='E'> e) " + questao.e + "</label>" +
                     "</div>";
             } else {
-                div.innerHTML = "<p><strong>Questão " + numero + ":</strong> " + questao.enunciado + "</p>" +
-                    "<textarea name='q" + index + "' rows='3' placeholder='Digite sua resposta aqui...'></textarea>";
+                div.innerHTML = "<p><strong>Questão " + (index + 1) + ":</strong> " + questao.enunciado + "</p>" +
+                    "<textarea name='q" + index + "' rows='3' placeholder='Digite sua resposta...'></textarea>";
             }
             container.appendChild(div);
         });
@@ -326,24 +314,17 @@
         dadosProva.questoes.forEach(function(questao, index) {
             if (dadosProva.tipo === "objetiva") {
                 var resposta = form.elements["q" + index].value;
-                if(resposta === questao.gabarito) {
-                    nota += (10 / totalQuestoes);
-                }
+                if(resposta === questao.gabarito) nota += (10 / totalQuestoes);
             } else {
-                var respostaTexto = form.elements["q" + index].value.trim();
-                if(respostaTexto.length > 10) {
-                    nota += (10 / totalQuestoes);
-                }
+                if(form.elements["q" + index].value.trim().length > 10) nota += (10 / totalQuestoes);
             }
         });
 
         document.getElementById('tela-prova').classList.add('hidden');
         document.getElementById('tela-resultado').classList.remove('hidden');
-
         resultadoDiv.innerHTML = "<p><strong>Aluno:</strong> " + document.getElementById('aluno-nome').value + "</p>" +
-            "<p><strong>Nota final:</strong> <strong>" + nota.toFixed(1) + " / 10.0</strong></p>";
+            "<h3 style='color: #28a745;'>Nota final: " + nota.toFixed(1) + " / 10.0</h3>";
     }
 </script>
-
 </body>
 </html>
