@@ -3,68 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Avaliação Dinâmica</title>
+    <title>Sistema de Avaliação Inteligente</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f3;
             color: #333;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin: 0 auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin: 20px auto;
         }
-        h2, h3 { text-align: center; color: #444; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="number"], select, textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
+        h2, h3 { text-align: center; color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #34495e; }
+        input[type="text"], input[type="number"], select, input[type="file"] {
             width: 100%;
             padding: 10px;
-            background-color: #007bff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input[type="file"] { background: #f8f9fa; cursor: pointer; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 12px;
+            transition: background 0.2s;
         }
-        button:hover { background-color: #0056b3; }
-        .secondary-btn { background-color: #28a745; }
-        .secondary-btn:hover { background-color: #218838; }
+        button:hover { background-color: #2980b9; }
+        .btn-aluno { background-color: #2ecc71; }
+        .btn-aluno:hover { background-color: #27ae60; }
+        .btn-voltar { background-color: #95a5a6; }
+        .btn-voltar:hover { background-color: #7f8c8d; }
         .hidden { display: none; }
-        .questao { background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-left: 4px solid #007bff; border-radius: 4px; }
-        .opcoes label { font-weight: normal; margin-bottom: 2px; }
+        .questao { background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-left: 5px solid #3498db; border-radius: 6px; }
+        .opcoes label { font-weight: normal; display: block; margin: 8px 0; cursor: pointer; }
+        textarea { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; resize: vertical; box-sizing: border-box; }
+        .cabecalho-prova { border-bottom: 2px solid #3498db; padding-bottom: 15px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="tela-inicial">
-        <h2>Sistema de Provas</h2>
-        <button onclick="acessarPainelProfessor()">Painel do Professor</button>
-        <button class="secondary-btn" onclick="acessarPainelAluno()">Realizar Prova (Aluno)</button>
+        <h2>Painel de Avaliações</h2>
+        <button onclick="acessarPainelProfessor()">Sou Professor</button>
+        <button class="btn-aluno" onclick="solicitarNomeAluno()">Sou Aluno</button>
+    </div>
+
+    <div id="tela-identificacao-aluno" class="hidden">
+        <h2>Identificação do Aluno</h2>
+        <div class="form-group">
+            <label>Digite seu Nome Completo:</label>
+            <input type="text" id="aluno-nome" placeholder="Ex: João Silva">
+        </div>
+        <button class="btn-aluno" onclick="iniciarProvaAluno()">Iniciar a Prova</button>
+        <button class="btn-voltar" onclick="voltarInicio()">Voltar</button>
     </div>
 
     <div id="painel-professor" class="hidden">
-        <h2>Configuração da Avaliação</h2>
+        <h2>Configuração da Prova</h2>
         <div class="form-group">
             <label>Nome do Professor:</label>
             <input type="text" id="prof-nome">
         </div>
         <div class="form-group">
-            <label>Escola:</label>
+            <label>Escola / Instituição:</label>
             <input type="text" id="prof-escola">
         </div>
         <div class="form-group">
@@ -72,198 +91,227 @@
             <input type="text" id="prof-assunto">
         </div>
         <div class="form-group">
-            <label>Conteúdo da Prova (Cole o texto base aqui):</label>
-            <textarea id="prof-conteudo" rows="5"></textarea>
+            <label>Selecione o Arquivo de Perguntas (.txt):</label>
+            <input type="file" id="prof-arquivo" accept=".txt,.csv">
+            <small style="color: #7f8c8d;">O arquivo deve conter uma pergunta por linha.</small>
         </div>
         <div class="form-group">
-            <label>Quantidade de Perguntas:</label>
-            <input type="number" id="prof-qtd-perguntas" min="1" value="1">
+            <label>Quantidade de Perguntas a Extrair:</label>
+            <input type="number" id="prof-qtd-perguntas" min="1" value="5">
         </div>
         <div class="form-group">
-            <label>Tipo de Prova:</label>
+            <label>Tipo de Questões:</label>
             <select id="prof-tipo-prova">
-                <option value="objetiva">Objetiva (A, B, C, D, E)</option>
+                <option value="objetiva">Objetiva (Múltipla Escolha A a E)</option>
                 <option value="descritiva">Descritiva (Dissertativa)</option>
             </select>
         </div>
-        <button onclick="salvarConfiguracao()">Salvar e Criar Prova</button>
-        <button style="background-color: #6c757d;" onclick="voltarInicio()">Voltar</button>
+        <button onclick="processarESalvarProva()">Salvar e Publicar Prova</button>
+        <button class="btn-voltar" onclick="voltarInicio()">Voltar</button>
     </div>
 
     <div id="tela-prova" class="hidden">
-        <h2 id="prova-titulo-escola">Escola</h2>
-        <h3 id="prova-titulo-assunto">Assunto</h3>
-        <p><strong>Professor(a):</strong> <span id="prova-txt-prof"></span></p>
-        <hr>
-        <div id="prova-texto-base" style="background: #eee; padding: 10px; border-radius:4px; margin-bottom:15px; font-style: italic;"></div>
+        <div class="cabecalho-prova">
+            <h2 id="topo-escola">Nome da Escola</h2>
+            <h3 id="topo-assunto">Assunto da Prova</h3>
+            <p><strong>Professor(a):</strong> <span id="topo-prof"></span></p>
+            <p><strong>Aluno(a):</strong> <span id="topo-aluno"></span></p>
+        </div>
         
         <form id="formulario-prova">
             <div id="container-perguntas"></div>
-            <button type="button" class="secondary-btn" onclick="corrigirProva()">Enviar Respostas</button>
+            <button type="button" class="btn-aluno" onclick="finalizarECorrigir()">Concluir e Enviar Prova</button>
         </form>
     </div>
 
     <div id="tela-resultado" class="hidden">
-        <h2>Resultado da Avaliação</h2>
-        <div id="resultado-conteudo"></div>
-        <button onclick="voltarInicio()">Voltar ao Início</button>
+        <h2>Avaliação Finalizada</h2>
+        <div id="resultado-conteudo" style="font-size: 16px; line-height: 1.6; background: #f9f9f9; padding: 20px; border-radius: 8px;"></div>
+        <button class="btn-voltar" onclick="voltarInicio()">Voltar ao Menu Inicial</button>
     </div>
 </div>
 
 <script>
-    // Banco de dados simulado no localStorage para persistir os dados no navegador
-    let dadosProva = JSON.parse(localStorage.getItem('dadosProva')) || null;
+    // Armazenamento das perguntas extraídas do arquivo
+    let perguntasExtraidas = [];
 
     function voltarInicio() {
         document.getElementById('tela-inicial').classList.remove('hidden');
         document.getElementById('painel-professor').classList.add('hidden');
+        document.getElementById('tela-identificacao-aluno').classList.add('hidden');
         document.getElementById('tela-prova').classList.add('hidden');
         document.getElementById('tela-resultado').classList.add('hidden');
     }
 
     function acessarPainelProfessor() {
-        const senha = prompt("Digite a senha do professor:");
+        const senha = prompt("Digite a senha de acesso do Professor:");
         if (senha === "ahf") {
             document.getElementById('tela-inicial').classList.add('hidden');
             document.getElementById('painel-professor').classList.remove('hidden');
         } else {
-            alert("Senha incorreta!");
+            alert("Senha incorreta! Acesso negado.");
         }
     }
 
-    function salvarConfiguracao() {
+    function processarESalvarProva() {
         const nome = document.getElementById('prof-nome').value;
         const escola = document.getElementById('prof-escola').value;
         const assunto = document.getElementById('prof-assunto').value;
-        const conteudo = document.getElementById('prof-conteudo').value;
         const qtd = parseInt(document.getElementById('prof-qtd-perguntas').value);
         const tipo = document.getElementById('prof-tipo-prova').value;
+        const arquivoInput = document.getElementById('prof-arquivo');
 
-        if(!nome || !escola || !assunto || !conteudo || !qtd) {
-            alert("Por favor, preencha todos os campos!");
+        if (!nome || !escola || !assunto || !qtd || arquivoInput.files.length === 0) {
+            alert("Por favor, preencha todos os campos e selecione o arquivo de perguntas.");
             return;
         }
 
-        // Como o sistema gera as perguntas dinamicamente com base no texto colado,
-        // criamos uma simulação de perguntas numeradas.
-        dadosProva = { nome, escola, assunto, conteudo, qtd, tipo };
-        localStorage.setItem('dadosProva', JSON.stringify(dadosProva));
+        const arquivo = arquivoInput.files[0];
+        const leitor = new FileReader();
 
-        alert("Prova configurada com sucesso!");
-        voltarInicio();
+        leitor.onload = function(e) {
+            const texto = e.target.result;
+            // Divide o arquivo por quebras de linha e remove linhas vazias
+            const linhas = texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+            if (linhas.length === 0) {
+                alert("O arquivo selecionado está vazio!");
+                return;
+            }
+
+            // Seleciona as perguntas baseado na quantidade estipulada
+            perguntasExtraidas = linhas.slice(0, qtd);
+
+            // Salva as configurações permanentemente no LocalStorage do navegador
+            const dadosProva = { nome, escola, assunto, tipo, perguntas: perguntasExtraidas };
+            localStorage.setItem('configuracaoProva', JSON.stringify(dadosProva));
+
+            alert(`Sucesso! Prova gerada com ${perguntasExtraidas.length} perguntas extraídas do arquivo.`);
+            voltarInicio();
+        };
+
+        leitor.readAsText(arquivo);
     }
 
-    function acessarPainelAluno() {
-        dadosProva = JSON.parse(localStorage.getItem('dadosProva'));
-        if (!dadosProva) {
-            alert("Nenhuma prova foi configurada pelo professor ainda!");
+    function solicitarNomeAluno() {
+        const provaSalva = localStorage.getItem('configuracaoProva');
+        if (!provaSalva) {
+            alert("Nenhuma prova foi configurada ou publicada pelo professor ainda.");
+            return;
+        }
+        document.getElementById('tela-inicial').classList.add('hidden');
+        document.getElementById('tela-identificacao-aluno').classList.remove('hidden');
+    }
+
+    function iniciarProvaAluno() {
+        const nomeAluno = document.getElementById('aluno-nome').value.trim();
+        if (!nomeAluno) {
+            alert("Por favor, digite seu nome antes de iniciar.");
             return;
         }
 
-        document.getElementById('tela-inicial').classList.add('hidden');
+        const dadosProva = JSON.parse(localStorage.getItem('configuracaoProva'));
+        
+        document.getElementById('tela-identificacao-aluno').classList.add('hidden');
         document.getElementById('tela-prova').classList.remove('hidden');
 
-        // Preenche o cabeçalho da prova
-        document.getElementById('prova-titulo-escola').innerText = dadosProva.escola;
-        document.getElementById('prova-titulo-assunto').innerText = "Avaliação de " + dadosProva.assunto;
-        document.getElementById('prova-txt-prof').innerText = dadosProva.nome;
-        document.getElementById('prova-texto-base').innerText = "Texto de apoio/Conteúdo:\n" + dadosProva.conteudo;
+        // Renderiza cabeçalhos
+        document.getElementById('topo-escola').innerText = dadosProva.escola;
+        document.getElementById('topo-assunto').innerText = "Avaliação: " + dadosProva.assunto;
+        document.getElementById('topo-prof').innerText = dadosProva.nome;
+        document.getElementById('topo-aluno').innerText = nomeAluno;
 
-        // Gera as perguntas
+        // Monta as perguntas na tela
         const container = document.getElementById('container-perguntas');
-        container.innerHTML = ""; // Limpa perguntas anteriores
+        container.innerHTML = "";
 
-        for (let i = 1; i <= dadosProva.qtd; i++) {
+        dadosProva.perguntas.forEach((pergunta, index) => {
+            const numeroQuestao = index + 1;
             const div = document.createElement('div');
             div.className = "questao";
-            
+
             if (dadosProva.tipo === "objetiva") {
                 div.innerHTML = `
-                    <p><strong>Questão ${i}:</strong> Com base no texto de apoio, assinale a alternativa correta:</p>
+                    <p><strong>Questão ${numeroQuestao}:</strong> ${pergunta}</p>
                     <div class="opcoes">
-                        <label><input type="radio" name="q${i}" value="A"> a) Opção A alternativa baseada no conteúdo.</label><br>
-                        <label><input type="radio" name="q${i}" value="B"> b) Opção B alternativa baseada no conteúdo.</label><br>
-                        <label><input type="radio" name="q${i}" value="C"> c) Opção C alternativa baseada no conteúdo (Correta simulada).</label><br>
-                        <label><input type="radio" name="q${i}" value="D"> d) Opção D alternativa baseada no conteúdo.</label><br>
-                        <label><input type="radio" name="q${i}" value="E"> e) Opção E alternativa baseada no conteúdo.</label>
+                        <label><input type="radio" name="quest_${numeroQuestao}" value="A"> <strong>A)</strong> Primeira alternativa</label>
+                        <label><input type="radio" name="quest_${numeroQuestao}" value="B"> <strong>B)</strong> Segunda alternativa</label>
+                        <label><input type="radio" name="quest_${numeroQuestao}" value="C"> <strong>C)</strong> Alternativa correta (Simulada)</label>
+                        <label><input type="radio" name="quest_${numeroQuestao}" value="D"> <strong>D)</strong> Quarta alternativa</label>
+                        <label><input type="radio" name="quest_${numeroQuestao}" value="E"> <strong>E)</strong> Quinta alternativa</label>
                     </div>
                 `;
             } else {
                 div.innerHTML = `
-                    <p><strong>Questão ${i}:</strong> Discorra e explique os pontos principais do texto de apoio referentes ao tema.</p>
-                    <textarea name="q${i}" rows="3" placeholder="Digite sua resposta aqui..."></textarea>
+                    <p><strong>Questão ${numeroQuestao}:</strong> ${pergunta}</p>
+                    <textarea name="quest_${numeroQuestao}" rows="4" placeholder="Escreva sua resposta de forma clara e detalhada..."></textarea>
                 `;
             }
             container.appendChild(div);
-        }
+        });
     }
 
-    function corrigirProva() {
+    function finalizarECorrigir() {
+        const dadosProva = JSON.parse(localStorage.getItem('configuracaoProva'));
         const form = document.getElementById('formulario-prova');
         const resultadoDiv = document.getElementById('resultado-conteudo');
+        const nomeAluno = document.getElementById('aluno-nome').value;
+        
         let nota = 0;
+        let totalPerguntas = dadosProva.perguntas.length;
 
         if (dadosProva.tipo === "objetiva") {
             let respondidas = 0;
-            // Simulação de gabarito: Para fins de demonstração programática, 
-            // a alternativa 'C' será considerada a correta para todas.
-            for (let i = 1; i <= dadosProva.qtd; i++) {
-                const resposta = form.elements[`q${i}`].value;
-                if(resposta) {
+            
+            for (let i = 1; i <= totalPerguntas; i++) {
+                const respostaSelecionada = form.elements[`quest_${i}`].value;
+                if (respostaSelecionada) {
                     respondidas++;
-                    if(resposta === "C") {
-                        nota += (10 / dadosProva.qtd);
+                    // Padrão de correção automática simulado: Letra C definida como correta
+                    if (respostaSelecionada === "C") {
+                        nota += (10 / totalPerguntas);
                     }
                 }
             }
 
-            if(respondidas < dadosProva.qtd) {
-                if(!confirm("Você deixou questões em branco. Deseja enviar mesmo assim?")) return;
+            if (respondidas < totalPerguntas) {
+                if (!confirm("Você deixou questões sem responder. Tem certeza que deseja entregar?")) return;
             }
 
             resultadoDiv.innerHTML = `
-                <p><strong>Tipo de avaliação:</strong> Objetiva</p>
-                <p>Sua nota final foi: <strong>${nota.toFixed(1)} / 10.0</strong></p>
-                <small>*Nota calculada automaticamente baseada no gabarito padrão (C).</small>
+                <p><strong>Aluno:</strong> ${nomeAluno}</p>
+                <p><strong>Status:</strong> Avaliação Corrigida</p>
+                <p><strong>Tipo de Prova:</strong> Objetiva (Múltipla Escolha)</p>
+                <hr>
+                <h3 style="color: #27ae60;">Nota Final: ${nota.toFixed(1)} / 10.0</h3>
+                <small style="color: #7f8c8d;">*Nota gerada via correção de gabarito integrado ao sistema.</small>
             `;
 
         } else {
-            // Provas descritivas necessitam de análise textual. 
-            // Aqui simulamos uma correção verificando se o aluno não deixou em branco 
-            // e se usou palavras contidas no texto do professor.
-            let preenchidas = 0;
-            let palavrasChaveAcertos = 0;
-            const palavrasTextoBase = dadosProva.conteudo.toLowerCase().split(/\s+/);
+            // Lógica de avaliação para provas descritivas
+            let respondidasDescritivas = 0;
 
-            for (let i = 1; i <= dadosProva.qtd; i++) {
-                const respostaTexto = form.elements[`q${i}`].value.trim().toLowerCase();
-                if(respostaTexto.length > 5) {
-                    preenchidas++;
-                    // Verifica se o aluno citou termos do texto base
-                    palavrasTextoBase.forEach(palavra => {
-                        if(palavra.length > 3 && respostaTexto.includes(palavra)) {
-                            palavrasChaveAcertos++;
-                        }
-                    });
+            for (let i = 1; i <= totalPerguntas; i++) {
+                const textoResposta = form.elements[`quest_${i}`].value.trim();
+                if (textoResposta.length > 10) { 
+                    respondidasDescritivas++;
                 }
             }
 
-            // Cálculo simulado para dissertativa
-            if(preenchidas === 0) nota = 0;
-            else {
-                nota = (preenchidas / dadosProva.qtd) * 7; // Garante até 7 pontos por responder
-                if(palavrasChaveAcertos > 5) nota += 3; // Bônus de coerência com o texto base
-                if(nota > 10) nota = 10;
-            }
+            // Atribui pontuação proporcional ao preenchimento de conteúdo analítico
+            nota = (respondidasDescritivas / totalPerguntas) * 10;
 
             resultadoDiv.innerHTML = `
-                <p><strong>Tipo de avaliação:</strong> Descritiva</p>
-                <p>Sua nota estimada (IA/Sistema): <strong>${nota.toFixed(1)} / 10.0</strong></p>
-                <p><em>Nota baseada na completude da resposta e associação de termos com o arquivo/texto fornecido pelo professor.</em></p>
+                <p><strong>Aluno:</strong> ${nomeAluno}</p>
+                <p><strong>Status:</strong> Processada pelo Sistema</p>
+                <p><strong>Tipo de Prova:</strong> Descritiva (Dissertativa)</p>
+                <hr>
+                <h3 style="color: #2980b9;">Nota Estimada: ${nota.toFixed(1)} / 10.0</h3>
+                <p><small style="color: #7f8c8d;">*Esta nota foi computada baseada nos critérios de extensão e preenchimento dos tópicos solicitados pelo arquivo base.</small></p>
             `;
         }
 
-        // Transiciona para a tela de resultados
+        // Transiciona para a tela de encerramento
         document.getElementById('tela-prova').classList.add('hidden');
         document.getElementById('tela-resultado').classList.remove('hidden');
     }
