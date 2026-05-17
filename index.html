@@ -47,7 +47,7 @@
         .secondary-btn:hover { background-color: #218838; }
         .hidden { display: none; }
         .questao { background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-left: 4px solid #007bff; border-radius: 4px; }
-        .opcoes label { font-weight: normal; margin-bottom: 2px; }
+        .opcoes label { font-weight: normal; display: block; margin-bottom: 5px; cursor: pointer; }
         textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
         #status-leitura { color: #007bff; font-weight: bold; font-size: 13px; margin-top: 5px; text-align: center; }
     </style>
@@ -102,4 +102,248 @@
             <div id="status-leitura"></div>
         </div>
         <button onclick="salvarConfiguracao()">Salvar e Criar Prova</button>
-        <button style="background-color: #6c757d;" onclick="voltar
+        <button style="background-color: #6c757d;" onclick="voltarInicio()">Voltar</button>
+    </div>
+
+    <div id="tela-prova" class="hidden">
+        <h2 id="prova-titulo-escola">Escola</h2>
+        <h3 id="prova-titulo-assunto">Assunto</h3>
+        <p><strong>Professor(a):</strong> <span id="prova-txt-prof"></span></p>
+        <p><strong>Aluno(a):</strong> <span id="prova-txt-aluno"></span></p>
+        <hr>
+        
+        <form id="formulario-prova">
+            <div id="container-perguntas"></div>
+            <button type="button" class="secondary-btn" onclick="corrigirProva()">Enviar Respostas</button>
+        </form>
+    </div>
+
+    <div id="tela-resultado" class="hidden">
+        <h2>Resultado da Avaliação</h2>
+        <div id="resultado-conteudo"></div>
+        <button onclick="voltarInicio()">Voltar ao Início</button>
+    </div>
+</div>
+
+<script>
+    // Define o worker do PDF.js de forma estável
+    if (typeof window !== 'undefined' && window['pdfjs-dist/build/pdf']) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+    var dadosProva = null;
+
+    function voltarInicio() {
+        document.getElementById('tela-inicial').classList.remove('hidden');
+        document.getElementById('painel-professor').classList.add('hidden');
+        document.getElementById('tela-nome-aluno').classList.add('hidden');
+        document.getElementById('tela-prova').classList.add('hidden');
+        document.getElementById('tela-resultado').classList.add('hidden');
+        document.getElementById('status-leitura').innerText = "";
+    }
+
+    function acessarPainelProfessor() {
+        var senha = prompt("Digite a senha do professor:");
+        if (senha === "ahf") {
+            document.getElementById('tela-inicial').classList.add('hidden');
+            document.getElementById('painel-professor').classList.remove('hidden');
+        } else {
+            alert("Senha incorreta!");
+        }
+    }
+
+    // Processa o texto limpando caracteres ocultos e dividindo as questões pelas barras "|"
+    function processarTextoQuestoes(textoCompleto, tipo, qtd, nome, school, assunto) {
+        // Remove quebras de linha estranhas que arquivos binários costumam injetar
+        var linhas = textoCompleto.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+        var questoesExtraidas = [];
+
+        linhas.forEach(function(linha) {
+            var partes = linha.split('|').map(function(p) { return p.trim(); });
+            
+            if(tipo === "objetiva" && partes.length >= 7) {
+                questoesExtraidas.push({
+                    enunciado: partes[0],
+                    a: partes[1], b: partes[2], c: partes[3], d: partes[4], e: partes[5],
+                    gabarito: partes[6].replace('Gabarito:', '').trim().toUpperCase()
+                });
+            } else if(tipo === "descritiva" && partes.length >= 1) {
+                questoesExtraidas.push({ enunciado: partes[0] });
+            }
+        });
+
+        var listaFinalQuestoes = questoesExtraidas.slice(0, qtd);
+
+        if(listaFinalQuestoes.length === 0) {
+            alert("Erro ao processar as questões.\n\nCertifique-se de que o arquivo carregado foi gerado pelo Copilot usando o padrão de barras verticais:\nPergunta | Alternativa A | Alternativa B | Alternativa C | Alternativa D | Alternativa E | Gabarito: C");
+            document.getElementById('status-leitura').innerText = "";
+            return;
+        }
+
+        dadosProva = { nome: nome, escola: school, assunto: assunto, qtd: qtd, tipo: tipo, questoes: listaFinalQuestoes };
+        localStorage.setItem('dadosProvaSalva', JSON.stringify(dadosProva));
+
+        alert("Prova publicada com sucesso com as letras corrigidas!");
+        voltarInicio();
+    }
+
+    function salvarConfiguracao() {
+        var nome = document.getElementById('prof-nome').value;
+        var school = document.getElementById('prof-escola').value;
+        var assunto = document.getElementById('prof-assunto').value;
+        var qtd = parseInt(document.getElementById('prof-qtd-perguntas').value);
+        var tipo = document.getElementById('prof-tipo-prova').value;
+        var arquivoInput = document.getElementById('prof-arquivo');
+
+        if(!nome || !school || !assunto || !qtd || arquivoInput.files.length === 0) {
+            alert("Por favor, preencha todos os campos e selecione o arquivo!");
+            return;
+        }
+
+        var arquivo = arquivoInput.files[0];
+        var extensao = arquivo.name.split('.').pop().toLowerCase();
+        var statusDiv = document.getElementById('status-leitura');
+        
+        statusDiv.innerText = "Processando e limpando texto do documento... Por favor, aguarde.";
+
+        // TEXTO PURO (.txt) com codificação UTF-8 explícita para evitar falhas de acentuação
+        if (extensao === "txt") {
+            var leitorTxt = new FileReader();
+            leitorTxt.onload = function(e) {
+                processarTextoQuestoes(e.target.result, tipo, qtd, nome, school, assunto);
+            };
+            leitorTxt.readAsText(arquivo, "UTF-8");
+        } 
+        
+        // DOCUMENTOS WORD (.docx) ou POWERPOINT (.pptx)
+        else if (extensao === "docx" || extensao === "pptx") {
+            var leitorDocx = new FileReader();
+            leitorDocx.onload = function(e) {
+                var arrayBuffer = e.target.result;
+                mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+                    .then(function(result) {
+                        processarTextoQuestoes(result.value, tipo, qtd, nome, school, assunto);
+                    })
+                    .catch(function(err) {
+                        alert("Erro ao ler o documento: " + err);
+                        statusDiv.innerText = "";
+                    });
+            };
+            leitorDocx.readAsArrayBuffer(arquivo);
+        } 
+        
+        // DOCUMENTOS PDF (.pdf) - Extração limpa caractere por caractere
+        else if (extensao === "pdf") {
+            var leitorPdf = new FileReader();
+            leitorPdf.onload = function(e) {
+                var typedarray = new Uint8Array(e.target.result);
+                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    var maxPages = pdf.numPages;
+                    var countPromises = [];
+                    
+                    for (var j = 1; j <= maxPages; j++) {
+                        countPromises.push(pdf.getPage(j).then(function(page) {
+                            return page.getTextContent().then(function(text) {
+                                return text.items.map(function(s) { return s.str; }).join(' ');
+                            });
+                        }));
+                    }
+                    
+                    Promise.all(countPromises).then(function(texts) {
+                        var textoPdfCompleto = texts.join('\n');
+                        processarTextoQuestoes(textoPdfCompleto, tipo, qtd, nome, school, assunto);
+                    });
+                }).catch(function(err) {
+                    alert("Erro ao processar PDF: " + err.message);
+                    statusDiv.innerText = "";
+                });
+            };
+            leitorPdf.readAsArrayBuffer(arquivo);
+        } else {
+            alert("Formato não suportado. Por favor use .txt, .pdf, .docx ou .pptx");
+            statusDiv.innerText = "";
+        }
+    }
+
+    function acessarPainelAluno() {
+        var checar = localStorage.getItem('dadosProvaSalva');
+        if (!checar) {
+            alert("Nenhuma prova foi configurada pelo professor ainda!");
+            return;
+        }
+        document.getElementById('tela-inicial').classList.add('hidden');
+        document.getElementById('tela-nome-aluno').classList.remove('hidden');
+    }
+
+    function iniciarProvaReal() {
+        var nomeAluno = document.getElementById('aluno-nome').value.trim();
+        if(!nomeAluno) {
+            alert("Por favor, digite seu nome para iniciar!");
+            return;
+        }
+
+        dadosProva = JSON.parse(localStorage.getItem('dadosProvaSalva'));
+
+        document.getElementById('tela-nome-aluno').classList.add('hidden');
+        document.getElementById('tela-prova').classList.remove('hidden');
+
+        document.getElementById('prova-titulo-escola').innerText = dadosProva.escola;
+        document.getElementById('prova-titulo-assunto').innerText = "Avaliação de " + dadosProva.assunto;
+        document.getElementById('prova-txt-prof').innerText = dadosProva.nome;
+        document.getElementById('prova-txt-aluno').innerText = nomeAluno;
+
+        var container = document.getElementById('container-perguntas');
+        container.innerHTML = ""; 
+
+        dadosProva.questoes.forEach(function(questao, index) {
+            var numero = index + 1;
+            var div = document.createElement('div');
+            div.className = "questao";
+            
+            if (dadosProva.tipo === "objetiva") {
+                div.innerHTML = "<p><strong>Questão " + numero + ":</strong> " + questao.enunciado + "</p>" +
+                    "<div class='opcoes'>" +
+                        "<label><input type='radio' name='q" + index + "' value='A'> a) " + questao.a + "</label>" +
+                        "<label><input type='radio' name='q" + index + "' value='B'> b) " + questao.b + "</label>" +
+                        "<label><input type='radio' name='q" + index + "' value='C'> c) " + questao.c + "</label>" +
+                        "<label><input type='radio' name='q" + index + "' value='D'> d) " + questao.d + "</label>" +
+                        "<label><input type='radio' name='q" + index + "' value='E'> e) " + questao.e + "</label>" +
+                    "</div>";
+            } else {
+                div.innerHTML = "<p><strong>Questão " + numero + ":</strong> " + questao.enunciado + "</p>" +
+                    "<textarea name='q" + index + "' rows='3' placeholder='Digite sua resposta aqui...'></textarea>";
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function corrigirProva() {
+        var form = document.getElementById('formulario-prova');
+        var resultadoDiv = document.getElementById('resultado-conteudo');
+        var nota = 0;
+        var totalQuestoes = dadosProva.questoes.length;
+
+        dadosProva.questoes.forEach(function(questao, index) {
+            if (dadosProva.tipo === "objetiva") {
+                var resposta = form.elements["q" + index].value;
+                if(resposta === questao.gabarito) {
+                    nota += (10 / totalQuestoes);
+                }
+            } else {
+                var respostaTexto = form.elements["q" + index].value.trim();
+                if(respostaTexto.length > 10) {
+                    nota += (10 / totalQuestoes);
+                }
+            }
+        });
+
+        document.getElementById('tela-prova').classList.add('hidden');
+        document.getElementById('tela-resultado').classList.remove('hidden');
+
+        resultadoDiv.innerHTML = "<p><strong>Aluno:</strong> " + document.getElementById('aluno-nome').value + "</p>" +
+            "<p><strong>Nota final:</strong> <strong>" + nota.toFixed(1) + " / 10.0</strong></p>";
+    }
+</script>
+
+</body>
+</html>
