@@ -97,9 +97,9 @@
         const tipo = document.getElementById('prof-tipo-prova').value;
         const dica = document.getElementById('dica-formato');
         if(tipo === 'objetiva') {
-            dica.innerText = "Dica: Cole o prompt do Copilot para gerar no formato: Pergunta | A) X | B) Y | C) Z | D) W | E) K | Gabarito: C";
+            dica.innerText = "Dica: Peça ao Copilot no formato: Pergunta | A) X | B) Y | C) Z | D) W | E) K | Gabarito: C";
         } else {
-            dica.innerText = "Dica: Cole o prompt do Copilot para gerar no formato: Pergunta | Criterio de Correção";
+            dica.innerText = "Dica: Peça ao Copilot no formato: Pergunta | Criterio de Correção";
         }
     }
     alternarDica();
@@ -113,10 +113,13 @@
     }
 
     function acessarPainelProfessor() {
-        if (prompt("Digite a senha do Professor:") === "ahf") {
+        const senha = prompt("Digite a senha do Professor:");
+        if (senha === "ahf") {
             document.getElementById('tela-inicial').classList.add('hidden');
             document.getElementById('painel-professor').classList.remove('hidden');
-        } else { alert("Senha incorreta!"); }
+        } else { 
+            alert("Senha incorreta!"); 
+        }
     }
 
     function processarESalvarProva() {
@@ -134,7 +137,7 @@
         const leitor = new FileReader();
         leitor.onload = function(e) {
             const linhas = e.target.result.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            let questoes Processadas = [];
+            let questoesProcessadas = [];
 
             linhas.forEach(linha => {
                 const partes = linha.split('|').map(p => p.trim());
@@ -145,7 +148,7 @@
                         gabarito: partes[6].replace('Gabarito:', '').trim().toUpperCase()
                     });
                 } else if (tipo === 'descritiva' && partes.length >= 1) {
-                    questoesProcessadas.push({ enunciado: partes[0], criterio: partes[1] || "" });
+                    questoesProcessadas.push({ enunciado: partes[0],  criterio: partes[1] || "" });
                 }
             });
 
@@ -162,14 +165,20 @@
     }
 
     function solicitarNomeAluno() {
-        if (!localStorage.getItem('provaSalva')) return alert("Nenhuma prova ativa.");
+        if (!localStorage.getItem('provaSalva')) {
+            alert("Nenhuma prova ativa disponível no momento.");
+            return;
+        }
         document.getElementById('tela-inicial').classList.add('hidden');
         document.getElementById('tela-identificacao-aluno').classList.remove('hidden');
     }
 
     function iniciarProvaAluno() {
         const nomeAluno = document.getElementById('aluno-nome').value.trim();
-        if (!nomeAluno) return alert("Insira seu nome.");
+        if (!nomeAluno) {
+            alert("Insira seu nome para iniciar.");
+            return;
+        }
 
         estruturaProva = JSON.parse(localStorage.getItem('provaSalva'));
         document.getElementById('tela-identificacao-aluno').classList.add('hidden');
@@ -201,6 +210,7 @@
             }
             form.appendChild(div);
         });
+        
         const btnSubmit = document.createElement('button');
         btnSubmit.type = "button";
         btnSubmit.className = "btn-aluno";
@@ -212,7 +222,6 @@
     function finalizarProva() {
         const form = document.getElementById('formulario-prova');
         let nota = 0;
-        let relatorio = "";
 
         estruturaProva.questoes.forEach((q, i) => {
             if(estruturaProva.tipo === 'objetiva') {
